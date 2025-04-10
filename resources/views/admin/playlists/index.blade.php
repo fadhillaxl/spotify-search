@@ -46,6 +46,7 @@
                                             </div>
                                             <div class="flex-grow-1 ms-3">
                                                 <h6 class="mb-0">{{ $playlist->name }}</h6>
+                                                <small class="text-muted">Created: {{ $playlist->created_at->format('Y-m-d H:i:s') }}</small>
                                             </div>
                                         </div>
                                     </td>

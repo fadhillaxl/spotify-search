@@ -17,7 +17,7 @@
             </div>
 
             <div class="card-body">
-                <form method="POST" action="{{ route('playlists.update', $playlist) }}" class="needs-validation" novalidate>
+                <form method="POST" action="{{ route('playlists.update', $playlist) }}" class="needs-validation" novalidate autocomplete="on">
                     @csrf
                     @method('PATCH')
 
@@ -29,7 +29,7 @@
                             </span>
                             <input type="text" class="form-control form-control-lg @error('name') is-invalid @enderror" 
                                    id="name" name="name" value="{{ old('name', $playlist->name) }}" required 
-                                   placeholder="Enter playlist name">
+                                   placeholder="Enter playlist name" autocomplete="off">
                             @error('name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -44,7 +44,7 @@
                             </span>
                             <input type="text" class="form-control form-control-lg @error('spotify_playlist_id') is-invalid @enderror" 
                                    id="spotify_playlist_id" name="spotify_playlist_id" value="{{ old('spotify_playlist_id', $playlist->spotify_playlist_id) }}" 
-                                   required placeholder="Enter Spotify playlist ID">
+                                   required placeholder="Enter Spotify playlist ID" autocomplete="off">
                             @error('spotify_playlist_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -63,7 +63,7 @@
                             </span>
                             <textarea class="form-control @error('description') is-invalid @enderror" 
                                       id="description" name="description" rows="4" 
-                                      placeholder="Enter playlist description">{{ old('description', $playlist->description) }}</textarea>
+                                      placeholder="Enter playlist description" autocomplete="off">{{ old('description', $playlist->description) }}</textarea>
                             @error('description')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -73,7 +73,7 @@
                     <div class="mb-4">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" 
-                                   {{ old('is_active', $playlist->is_active) ? 'checked' : '' }}>
+                                   {{ old('is_active', $playlist->is_active) ? 'checked' : '' }} autocomplete="off">
                             <label class="form-check-label fw-bold" for="is_active">
                                 <i class="bi bi-toggle-on me-1"></i>Active Playlist
                             </label>

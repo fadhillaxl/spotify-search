@@ -15,9 +15,11 @@ class PlaylistController extends Controller
      */
     public function index()
     {
-        $playlists = Playlist::where('is_active', true)
+        $playlists = Playlist::where('user_id', auth()->id())
             ->latest()
             ->get();
+
+        // dd($playlists);
         return view('admin.playlists.index', compact('playlists'));
     }
 
@@ -72,15 +74,17 @@ class PlaylistController extends Controller
                 'is_active' => 'boolean'
             ]);
 
-            $playlist = Playlist::create($validated);
+            // Use the user's createPlaylist method to create the playlist
+            $playlist = auth()->user()->createPlaylist($validated);
 
             return redirect()->route('playlists.index')
                 ->with('success', 'Playlist added successfully.');
         } catch (\Exception $e) {
             Log::error('Error creating playlist: ' . $e->getMessage());
+            // dd($e);
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Failed to create playlist. Please try again.');
+                ->with('error', $e->getMessage() ?? 'Failed to create playlist. Please try again.');
         }
     }
 
@@ -92,6 +96,11 @@ class PlaylistController extends Controller
      */
     public function edit(Playlist $playlist)
     {
+        // Ensure the user can only edit their own playlists
+        if ($playlist->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
         return view('admin.playlists.edit', compact('playlist'));
     }
 
@@ -105,6 +114,11 @@ class PlaylistController extends Controller
     public function update(Request $request, Playlist $playlist)
     {
         try {
+            // Ensure the user can only update their own playlists
+            if ($playlist->user_id !== auth()->id()) {
+                abort(403, 'Unauthorized action.');
+            }
+            
             $validated = $request->validate([
                 'spotify_playlist_id' => 'required|string|unique:playlists,spotify_playlist_id,' . $playlist->id,
                 'name' => 'required|string|max:255',
@@ -113,6 +127,11 @@ class PlaylistController extends Controller
             ]);
 
             $playlist->update($validated);
+
+            // If this playlist is active, ensure it's the only active playlist for this user
+            if ($playlist->is_active) {
+                Playlist::ensureOnlyOneActivePerUser(auth()->id());
+            }
 
             return redirect()->route('playlists.index')
                 ->with('success', 'Playlist updated successfully.');
@@ -133,6 +152,11 @@ class PlaylistController extends Controller
     public function destroy(Playlist $playlist)
     {
         try {
+            // Ensure the user can only delete their own playlists
+            if ($playlist->user_id !== auth()->id()) {
+                abort(403, 'Unauthorized action.');
+            }
+            
             $playlist->delete();
 
             return redirect()->route('playlists.index')

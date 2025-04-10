@@ -38,15 +38,13 @@ Route::middleware(['web'])->group(function () {
         Route::get('/playlists', [PlaylistController::class, 'index'])->name('playlists.index');
         Route::get('/playlists/create', [PlaylistController::class, 'create'])->name('playlists.create');
         Route::post('/playlists', [PlaylistController::class, 'store'])->name('playlists.store');
-        Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::get('/playlists/{playlist}/edit', [PlaylistController::class, 'edit'])->name('playlists.edit');
         Route::patch('/playlists/{playlist}', [PlaylistController::class, 'update'])->name('playlists.update');
         Route::delete('/playlists/{playlist}', [PlaylistController::class, 'destroy'])->name('playlists.destroy');
-        Route::patch('/playlists/{playlist}', [PlaylistController::class, 'update'])->name('playlists.update');
     });
 
 
-    Route::get('/api/active-playlists ', [PlaylistController::class, 'getActivePlaylistIds']);
+    Route::get('/api/active-playlists', [PlaylistController::class, 'getActivePlaylistIds']);
 
     require __DIR__.'/auth.php';
 });

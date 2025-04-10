@@ -18,6 +18,9 @@
                     <x-nav-link :href="route('playlists.index')" :active="request()->routeIs('playlists.*')">
                         {{ __('Playlists') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('overlay')" :active="request()->routeIs('overlay')">
+                        {{ __('Song Requests') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -37,10 +40,6 @@
                     </x-slot>
 
                     <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
-
                         <!-- Authentication -->
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -76,6 +75,9 @@
             <x-responsive-nav-link :href="route('playlists.index')" :active="request()->routeIs('playlists.*')">
                 {{ __('Playlists') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('overlay')" :active="request()->routeIs('overlay')">
+                {{ __('Song Requests') }}
+            </x-responsive-nav-link>
         </div>
 
         <!-- Responsive Settings Options -->
@@ -86,10 +88,6 @@
             </div>
 
             <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
-
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
