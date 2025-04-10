@@ -28,10 +28,33 @@ class SpotifyService
             ->get('https://api.spotify.com/v1/search', [
                 'q' => $query,
                 'type' => 'track',
-                'limit' => 20,
+                'limit' => 50,
             ]);
 
         return $response->json();
+    }
+    
+    /**
+     * Get the total number of tracks in a playlist
+     */
+    public function getPlaylistTotalTracks($playlistId)
+    {
+        $token = $this->getAccessToken();
+        
+        $response = Http::withToken($token)
+            ->get("https://api.spotify.com/v1/playlists/{$playlistId}", [
+                'limit' => 150,
+            ]);
+            
+        $data = $response->json();
+        
+        // Debug logging
+        \Log::info('Playlist Info Response', [
+            'playlist_id' => $playlistId,
+            'total_tracks' => $data['tracks']['total'] ?? 'N/A'
+        ]);
+        
+        return $data['tracks']['total'] ?? 0;
     }
     
     /**
@@ -40,30 +63,39 @@ class SpotifyService
     public function getPlaylistTracks($playlistId)
     {
         $token = $this->getAccessToken();
-        $allTracks = [];
-        $offset = 0;
-        $limit = 50;
+        $response1 = Http::withToken($token)
+        ->get("https://api.spotify.com/v1/playlists/{$playlistId}");
+        $data1 = $response1->json();
+        $limit = $data1['tracks']['limit'];
+
+        $response = Http::withToken($token)
+            ->get("https://api.spotify.com/v1/playlists/{$playlistId}/tracks", [
+                'limit' => $limit,
+            ]);
+
+        $data = $response->json();
         
-        do {
-            $response = Http::withToken($token)
-                ->get("https://api.spotify.com/v1/playlists/{$playlistId}/tracks", [
-                    'limit' => $limit,
-                    'offset' => $offset,
-                ]);
-                
-            $data = $response->json();
-            
-            if (isset($data['items']) && is_array($data['items'])) {
-                $allTracks = array_merge($allTracks, $data['items']);
-            }
-            
-            $offset += $limit;
-        } while (isset($data['next']) && $data['next'] !== null);
+        // Debug logging
+        \Log::info('Spotify API Response', [
+            'playlist_id' => $playlistId,
+            'total' => $data['total'] ?? 'N/A',
+            'items_count' => count($data['items'] ?? [])
+        ]);
         
-        return [
-            'items' => $allTracks,
-            'total' => count($allTracks)
-        ];
+        $allTracks = isset($data['items']) && is_array($data['items']) ? $data['items'] : [];
+        
+        // Debug logging for final result
+        \Log::info('Final Playlist Tracks Result', [
+            'playlist_id' => $playlistId,
+            'total_tracks' => count($allTracks),
+            'api_total' => $data['limit'] ?? 0
+        ]);
+        
+        // return [
+        //     'items' => $allTracks,
+        //     'total' => count($allTracks) // Use the actual count of tracks instead of API total
+        // ];
+        return $data;
     }
     
     /**

@@ -42,6 +42,9 @@
                 border: 2px solid #1DB954;
                 color: #1DB954;
                 transition: all 0.3s ease;
+                margin-top: 1rem;
+                padding: 0.5rem 1.5rem;
+                display: inline-block !important;
             }
             .show-more-button:hover {
                 background-color: #1DB954;
@@ -49,6 +52,32 @@
             }
             .track-card.hidden-track {
                 display: none;
+            }
+            .pagination {
+                margin-top: 1rem;
+                justify-content: center;
+                display: flex !important;
+            }
+            .pagination .page-link {
+                color: #1DB954;
+                border-color: #1DB954;
+                padding: 0.5rem 1rem;
+                margin: 0 0.25rem;
+            }
+            .pagination .page-item.active .page-link {
+                background-color: #1DB954;
+                border-color: #1DB954;
+                color: white;
+            }
+            .pagination .page-link:hover {
+                background-color: #1DB954;
+                border-color: #1DB954;
+                color: white;
+            }
+            .pagination .page-item.disabled .page-link {
+                color: #6c757d;
+                border-color: #dee2e6;
+                pointer-events: none;
             }
         </style>
     </head>
@@ -96,8 +125,22 @@
                                 </button>
                             </div>
                             
+                            <div id="playlistInfo" class="text-center mb-3 d-none">
+                                <span class="badge bg-success">
+                                    <i class="bi bi-music-note-list me-1"></i>
+                                    <span id="totalTracksCount">0</span> tracks in playlist
+                                </span>
+                            </div>
+                            
                             <div id="searchResults" class="d-flex flex-column gap-3">
                                 <!-- Results will be displayed here -->
+                            </div>
+                            
+                            <div id="showMoreContainer" class="text-center mt-4">
+                                <button id="showMoreButton" class="btn btn-lg show-more-button">
+                                    Show More
+                                    <i class="bi bi-chevron-down ms-1"></i>
+                                </button>
                             </div>
                             
                             <div id="loadingIndicator" class="text-center py-4 d-none">
@@ -177,24 +220,50 @@
         
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                // Initialize Bootstrap modals
+                const songRequestModal = new bootstrap.Modal(document.getElementById('songRequestModal'), {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                
                 const searchForm = document.getElementById('searchForm');
                 const searchInput = document.getElementById('searchInput');
                 const searchResults = document.getElementById('searchResults');
                 const loadingIndicator = document.getElementById('loadingIndicator');
                 const noResults = document.getElementById('noResults');
+                const showMoreContainer = document.getElementById('showMoreContainer');
+                const showMoreButton = document.getElementById('showMoreButton');
+                const requestSongButton = document.getElementById('requestSongButton');
+                const submitSongRequest = document.getElementById('submitSongRequest');
                 
-                const itemsToShow = 20; // Number of items to show initially
+                const itemsToShow = 10; // Number of items to show initially
                 let currentlyShown = itemsToShow;
+                let allTracks = [];
                 
                 // Add this line to define the activePlaylistsContainer
                 const activePlaylistsContainer = document.getElementById('activePlaylists');
                 
+                // Store the active playlist ID
+                let activePlaylistId = null;
+                
                 // Function to display tracks
-                function displayTracks(tracks) {
+                function displayTracks(tracks, showAll = false) {
                     if (!tracks || tracks.length === 0) {
                         noResults.classList.remove('d-none');
+                        showMoreContainer.style.display = 'none';
+                        document.getElementById('playlistInfo').classList.add('d-none');
                         return;
                     }
+                    
+                    allTracks = tracks;
+                    currentlyShown = itemsToShow;
+                    
+                    // Clear existing results
+                    searchResults.innerHTML = '';
+                    
+                    // Update total tracks count
+                    document.getElementById('totalTracksCount').textContent = tracks.length;
+                    document.getElementById('playlistInfo').classList.remove('d-none');
                     
                     // Generate all results HTML
                     const resultsHTML = tracks.map((track, index) => `
@@ -231,63 +300,86 @@
                         </div>
                     `).join('');
                     
-                    // Add the results and show more button if needed
+                    // Add the results
                     searchResults.innerHTML = resultsHTML;
                     
-                    // Remove any existing "Show More" button first
-                    const existingShowMoreContainer = document.getElementById('showMoreContainer');
-                    if (existingShowMoreContainer) {
-                        existingShowMoreContainer.remove();
+                    // Debug logging
+                    console.log('Total tracks:', tracks.length);
+                    console.log('Items to show:', itemsToShow);
+                    console.log('Currently shown:', currentlyShown);
+                    
+                    // Show/hide "Show More" button based on remaining tracks
+                    const remainingTracks = tracks.length - currentlyShown;
+                    console.log('Remaining tracks:', remainingTracks);
+                    
+                    if (remainingTracks > 0) {
+                        console.log('Showing "Show More" button');
+                        showMoreContainer.style.display = 'block';
+                        showMoreButton.textContent = `Show More (${remainingTracks} more)`;
+                    } else {
+                        // console.log('Hiding "Show More" button');
+                        // showMoreContainer.style.display = 'none';
+                    }
+                }
+                
+                // Function to show more tracks
+                function showMoreTracks() {
+                    const hiddenTracks = document.querySelectorAll('.track-card.hidden-track');
+                    const tracksToShow = Math.min(hiddenTracks.length, itemsToShow);
+                    
+                    console.log('Hidden tracks:', hiddenTracks.length);
+                    console.log('Tracks to show:', tracksToShow);
+                    
+                    for (let i = 0; i < tracksToShow; i++) {
+                        hiddenTracks[i].classList.remove('hidden-track');
                     }
                     
-                    // Add "Show More" button if there are more items to show
-                    if (tracks.length > itemsToShow) {
-                        searchResults.insertAdjacentHTML('afterend', `
-                            <div id="showMoreContainer" class="text-center mt-4">
-                                <button id="showMoreButton" class="btn btn-lg show-more-button">
-                                    Show More
-                                    <i class="bi bi-chevron-down ms-1"></i>
-                                </button>
-                            </div>
-                        `);
-                        
-                        // Add event listener to the new button
-                        document.getElementById('showMoreButton').addEventListener('click', function() {
-                            const hiddenTracks = document.querySelectorAll('.track-card.hidden-track');
-                            const nextBatch = Array.from(hiddenTracks).slice(0, itemsToShow);
-                            
-                            nextBatch.forEach(track => {
-                                track.classList.remove('hidden-track');
-                            });
-                            
-                            currentlyShown += nextBatch.length;
-                            
-                            // Remove "Show More" button if all items are shown
-                            if (currentlyShown >= tracks.length) {
-                                this.parentElement.remove();
-                            }
-                        });
+                    currentlyShown += tracksToShow;
+                    
+                    // Update "Show More" button text and visibility
+                    const remainingTracks = allTracks.length - currentlyShown;
+                    if (remainingTracks > 0) {
+                        showMoreButton.textContent = `Show More (${remainingTracks} more)`;
+                    } else {
+                        showMoreContainer.style.display = 'none';
                     }
                 }
                 
                 // Load playlist tracks when page loads
-                function loadPlaylistTracks(playlistids) {
+                function loadPlaylistTracks(playlistids, showAll = false) {
                     loadingIndicator.classList.remove('d-none');
                     noResults.classList.add('d-none');
+                    
+                    // Check if playlistids is provided and has at least one element
+                    if (!playlistids || !playlistids.length) {
+                        // If no playlist IDs provided, use the active playlist ID or default
+                        const playlistId = activePlaylistId;
+                        fetchPlaylistTracks(playlistId, showAll);
+                        return;
+                    }
+                    
                     var playlist_ids = playlistids[0];
-                    console.log(playlist_ids)
-                    // Fetch tracks from the specific playlist using the correct Spotify API endpoint
-                    fetch(`/api/playlist/${playlist_ids}/tracks`)
+                    console.log(playlist_ids);
+                    
+                    // Store the active playlist ID for later use
+                    activePlaylistId = playlist_ids;
+                    
+                    // Fetch tracks from the specific playlist
+                    fetchPlaylistTracks(playlist_ids, showAll);
+                }
+                
+                // Helper function to fetch tracks from a playlist
+                function fetchPlaylistTracks(playlistId, showAll = false) {
+                    fetch(`/api/playlist/${playlistId}/tracks`)
                         .then(response => {
                             if (!response.ok) {
                                 throw new Error('Playlist endpoint not available');
                             }
-                            // console.log(response)
                             return response.json();
                         })
                         .then(data => {
                             loadingIndicator.classList.add('d-none');
-                            // console.log(data)
+                            console.log(data)
                             // Handle Spotify API response structure
                             let tracks = [];
                             
@@ -296,14 +388,20 @@
                                 tracks = data.items.map(item => item.track).filter(track => track);
                             }
                             
-                            displayTracks(tracks);
+                            displayTracks(tracks, showAll);
                         })
                         .catch(error => {
                             console.error('Error fetching playlist tracks:', error);
-                            
+                            loadingIndicator.classList.add('d-none');
+                            searchResults.innerHTML = `
+                                <div class="alert alert-danger text-center" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                    An error occurred while loading tracks. Please try again.
+                                </div>
+                            `;
                         });
                 }
-
+                
                 // Function to fetch active playlists
                 function fetchActivePlaylists() {
                     fetch('/api/active-playlists')
@@ -339,12 +437,17 @@
                     loadingIndicator.classList.remove('d-none');
                     noResults.classList.add('d-none');
                     
-                    // Load all songs from the playlist
-                    loadPlaylistTracks();
+                    // Load all songs from the playlist with showAll=true
+                    loadPlaylistTracks(null, true);
+                });
+                
+                // Show modal when request song button is clicked
+                requestSongButton.addEventListener('click', function() {
+                    songRequestModal.show();
                 });
                 
                 // Handle song request form submission
-                document.getElementById('submitSongRequest').addEventListener('click', function() {
+                submitSongRequest.addEventListener('click', function() {
                     const form = document.getElementById('songRequestForm');
                     const formData = new FormData(form);
                     const data = {};
@@ -374,8 +477,7 @@
                         this.innerHTML = 'Submit Request';
                         
                         // Close the modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('songRequestModal'));
-                        modal.hide();
+                        songRequestModal.hide();
                         
                         // Reset the form
                         form.reset();
@@ -411,6 +513,9 @@
                         // Pre-fill the form
                         document.getElementById('songName').value = songName;
                         document.getElementById('artistName').value = artist;
+                        
+                        // Show the modal
+                        songRequestModal.show();
                     }
                 });
                 
@@ -423,9 +528,12 @@
                     searchResults.innerHTML = '';
                     loadingIndicator.classList.remove('d-none');
                     noResults.classList.add('d-none');
-                    console.log(data)
-                    // Use the playlist search endpoint instead of the general search
-                    fetch(`/api/playlist/1QlwZS4gfx0XepdxpBG1UH/search?query=${encodeURIComponent(query)}`)
+                    
+                    // Use the active playlist ID if available, otherwise use a default
+                    const playlistId = activePlaylistId || '1QlwZS4gfx0XepdxpBG1UH';
+                    
+                    // Use the playlist search endpoint with the active playlist ID
+                    fetch(`/api/playlist/${playlistId}/search?query=${encodeURIComponent(query)}`)
                         .then(response => response.json())
                         .then(data => {
                             loadingIndicator.classList.add('d-none');
@@ -447,7 +555,6 @@
                                     total = data.total || 0;
                                 }
                             }
-                            
                             displayTracks(tracks);
                         })
                         .catch(error => {
@@ -489,6 +596,7 @@
 
                 // Function to display active playlists
                 function displayActivePlaylists(playlistIds) {
+
                     if (playlistIds.length === 0) {
                         activePlaylistsContainer.innerHTML = '<p class="text-muted">No active playlists found.</p>';
                         return;
@@ -505,8 +613,8 @@
                     activePlaylistsContainer.innerHTML = playlistsHTML;
                 }
 
-                // Fetch active playlists when the page loads
-                
+                // Add event listener for the "Show More" button
+                showMoreButton.addEventListener('click', showMoreTracks);
             });
         </script>
     </body>

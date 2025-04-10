@@ -20,6 +20,7 @@ class SpotifyController extends Controller
      */
     public function index()
     {
+        
         return view('search');
     }
 
@@ -33,7 +34,7 @@ class SpotifyController extends Controller
         ]);
 
         $results = $this->spotify->searchTracks($request->query('query'));
-
+        // dd($results);
         return response()->json($results);
     }
     
