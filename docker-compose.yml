@@ -1,3 +1,5 @@
+version: '2'
+
 services:
   # PHP Service
   app:
@@ -38,10 +40,10 @@ services:
     container_name: spotify-search-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_DATABASE: ${DB_DATABASE:-spotify_search}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      MYSQL_USER: ${DB_USERNAME:-spotify_user}
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
     volumes:

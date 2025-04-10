@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\SongRequest;
+use App\Models\PlaylistSetting;
 use App\Events\SongRequestUpdated;
 
 class DashboardController extends Controller
@@ -14,8 +15,17 @@ class DashboardController extends Controller
     public function index()
     {
         $songRequests = SongRequest::orderBy('created_at', 'desc')->get();
+        $playlistSettings = PlaylistSetting::first();
         
-        return view('dashboard', compact('songRequests'));
+        return view('dashboard', compact('songRequests', 'playlistSettings'));
+    }
+
+    public function overlay()
+    {
+        $songRequests = SongRequest::orderBy('created_at', 'desc')->get();
+        $playlistSettings = PlaylistSetting::first();
+        
+        return view('overlay', compact('songRequests', 'playlistSettings'));
     }
     
     /**
@@ -24,20 +34,39 @@ class DashboardController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending,approved,rejected',
+            'status' => 'required|in:pending,approved,rejected'
         ]);
         
         $songRequest = SongRequest::findOrFail($id);
-        $songRequest->status = $validated['status'];
-        $songRequest->save();
+        $songRequest->update($validated);
         
         // Broadcast the update event
-        event(new SongRequestUpdated($songRequest));
+        broadcast(new SongRequestUpdated($songRequest))->toOthers();
         
         return response()->json([
             'success' => true,
-            'message' => 'Song request status updated successfully',
+            'message' => 'Status updated successfully',
             'data' => $songRequest
+        ]);
+    }
+
+    public function updatePlaylistSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'playlist_id' => 'required|string',
+            'name' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean'
+        ]);
+
+        $settings = PlaylistSetting::firstOrNew();
+        $settings->fill($validated);
+        $settings->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Playlist settings updated successfully',
+            'data' => $settings
         ]);
     }
 }

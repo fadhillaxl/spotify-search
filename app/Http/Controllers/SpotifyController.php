@@ -43,7 +43,7 @@ class SpotifyController extends Controller
     public function playlistTracks($playlistId)
     {
         $results = $this->spotify->getPlaylistTracks($playlistId);
-        
+        // dd($results);
         return response()->json($results);
     }
     

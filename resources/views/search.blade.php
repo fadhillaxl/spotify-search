@@ -113,6 +113,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Active Playlists Section -->
+                    <div class="mt-5">
+                        <h3 class="text-center">Active Playlists</h3>
+                        <div id="activePlaylists" class="d-flex flex-column gap-3">
+                            <!-- Active playlists will be displayed here -->
+                        </div>
+                    </div>
                 </div>
                 
 
@@ -177,6 +185,9 @@
                 
                 const itemsToShow = 20; // Number of items to show initially
                 let currentlyShown = itemsToShow;
+                
+                // Add this line to define the activePlaylistsContainer
+                const activePlaylistsContainer = document.getElementById('activePlaylists');
                 
                 // Function to display tracks
                 function displayTracks(tracks) {
@@ -260,21 +271,23 @@
                 }
                 
                 // Load playlist tracks when page loads
-                function loadPlaylistTracks() {
+                function loadPlaylistTracks(playlistids) {
                     loadingIndicator.classList.remove('d-none');
                     noResults.classList.add('d-none');
-                    
+                    var playlist_ids = playlistids[0];
+                    console.log(playlist_ids)
                     // Fetch tracks from the specific playlist using the correct Spotify API endpoint
-                    fetch('/api/playlist/1QlwZS4gfx0XepdxpBG1UH/tracks')
+                    fetch(`/api/playlist/${playlist_ids}/tracks`)
                         .then(response => {
                             if (!response.ok) {
                                 throw new Error('Playlist endpoint not available');
                             }
+                            // console.log(response)
                             return response.json();
                         })
                         .then(data => {
                             loadingIndicator.classList.add('d-none');
-                            
+                            // console.log(data)
                             // Handle Spotify API response structure
                             let tracks = [];
                             
@@ -287,54 +300,38 @@
                         })
                         .catch(error => {
                             console.error('Error fetching playlist tracks:', error);
-                            loadingIndicator.classList.add('d-none');
                             
-                            // Fallback: Use a default search query to show popular songs
-                            fetch('/api/search?query=popular')
-                                .then(response => response.json())
-                                .then(data => {
-                                    // Handle different possible response structures
-                                    let tracks = [];
-                                    
-                                    if (Array.isArray(data)) {
-                                        tracks = data;
-                                    } else if (data && typeof data === 'object') {
-                                        if (data.tracks && Array.isArray(data.tracks)) {
-                                            tracks = data.tracks;
-                                        } else if (data.tracks && data.tracks.items && Array.isArray(data.tracks.items)) {
-                                            tracks = data.tracks.items;
-                                        } else if (data.items && Array.isArray(data.items)) {
-                                            tracks = data.items;
-                                        }
-                                    }
-                                    
-                                    if (tracks.length > 0) {
-                                        displayTracks(tracks);
-                                    } else {
-                                        // If no tracks found, show a message
-                                        searchResults.innerHTML = `
-                                            <div class="alert alert-info text-center" role="alert">
-                                                <i class="bi bi-info-circle-fill me-2"></i>
-                                                Enter a search term to find songs.
-                                            </div>
-                                        `;
-                                    }
-                                })
-                                .catch(fallbackError => {
-                                    console.error('Error with fallback search:', fallbackError);
-                                    searchResults.innerHTML = `
-                                        <div class="alert alert-info text-center" role="alert">
-                                            <i class="bi bi-info-circle-fill me-2"></i>
-                                            Enter a search term to find songs.
-                                        </div>
-                                    `;
-                                });
+                        });
+                }
+
+                // Function to fetch active playlists
+                function fetchActivePlaylists() {
+                    fetch('/api/active-playlists')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to fetch active playlists');
+                            }
+                            // console.log(response);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log(data)
+                            if (data.success) {
+                                // displayActivePlaylists(data.playlist_ids);
+                                loadPlaylistTracks(data.playlist_ids);
+
+                            } else {
+                                console.error(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching active playlists:', error);
                         });
                 }
                 
                 // Call loadPlaylistTracks when page loads
-                loadPlaylistTracks();
-                
+                // fetchActivePlaylists();
+                fetchActivePlaylists();
                 // Add event listener for the "Show All Songs" button
                 document.getElementById('showAllSongsButton').addEventListener('click', function() {
                     // Clear any search results
@@ -426,7 +423,7 @@
                     searchResults.innerHTML = '';
                     loadingIndicator.classList.remove('d-none');
                     noResults.classList.add('d-none');
-                    
+                    console.log(data)
                     // Use the playlist search endpoint instead of the general search
                     fetch(`/api/playlist/1QlwZS4gfx0XepdxpBG1UH/search?query=${encodeURIComponent(query)}`)
                         .then(response => response.json())
@@ -464,6 +461,52 @@
                             `;
                         });
                 });
+
+                // Function to fetch active playlists
+                function fetchActivePlaylists() {
+                    fetch('/api/active-playlists')
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to fetch active playlists');
+                            }
+                            // console.log(response);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log(data)
+                            if (data.success) {
+                                displayActivePlaylists(data.playlist_ids);
+                                loadPlaylistTracks(data.playlist_ids);
+
+                            } else {
+                                console.error(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching active playlists:', error);
+                        });
+                }
+
+                // Function to display active playlists
+                function displayActivePlaylists(playlistIds) {
+                    if (playlistIds.length === 0) {
+                        activePlaylistsContainer.innerHTML = '<p class="text-muted">No active playlists found.</p>';
+                        return;
+                    }
+
+                    const playlistsHTML = playlistIds.map(id => `
+                        <div class="card track-card">
+                            <div class="card-body">
+                                <h5 class="card-title">Playlist ID: ${id}</h5>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    activePlaylistsContainer.innerHTML = playlistsHTML;
+                }
+
+                // Fetch active playlists when the page loads
+                
             });
         </script>
     </body>
