@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -53,6 +54,22 @@ class User extends Authenticatable
     public function playlists(): HasMany
     {
         return $this->hasMany(Playlist::class);
+    }
+
+    /**
+     * Get the Spotify API credentials for the user.
+     */
+    public function spotifyApiCredential(): HasOne
+    {
+        return $this->hasOne(SpotifyApiCredential::class)->where('is_active', true);
+    }
+
+    /**
+     * Get all Spotify API credentials for the user.
+     */
+    public function spotifyApiCredentials(): HasMany
+    {
+        return $this->hasMany(SpotifyApiCredential::class);
     }
 
     /**

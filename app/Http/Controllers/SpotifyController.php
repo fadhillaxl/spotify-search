@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Services\SpotifyService;
 use App\Events\SongRequestCreated;
+use App\Models\SpotifyApiCredential;
+use Illuminate\Support\Facades\Auth;
 
 class SpotifyController extends Controller
 {
@@ -13,6 +15,11 @@ class SpotifyController extends Controller
     public function __construct(SpotifyService $spotify)
     {
         $this->spotify = $spotify;
+        
+        // Always use the authenticated user's credentials if available
+        if (Auth::check()) {
+            $this->spotify->forUser(Auth::user());
+        }
     }
 
     /**
@@ -20,7 +27,6 @@ class SpotifyController extends Controller
      */
     public function index()
     {
-        
         return view('search');
     }
 
@@ -34,7 +40,6 @@ class SpotifyController extends Controller
         ]);
 
         $results = $this->spotify->searchTracks($request->query('query'));
-        // dd($results);
         return response()->json($results);
     }
     
@@ -44,7 +49,6 @@ class SpotifyController extends Controller
     public function playlistTracks($playlistId)
     {
         $results = $this->spotify->getPlaylistTracks($playlistId);
-        // dd($results);
         return response()->json($results);
     }
     
@@ -87,6 +91,73 @@ class SpotifyController extends Controller
             'success' => true,
             'message' => 'Song request submitted successfully',
             'data' => $songRequest
+        ]);
+    }
+    
+    /**
+     * Store Spotify API credentials for the authenticated user
+     */
+    public function storeCredentials(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required|string|max:255',
+            'client_secret' => 'required|string|max:255',
+        ]);
+        
+        try {
+            $user = Auth::user();
+            
+            // Deactivate any existing active credentials
+            SpotifyApiCredential::where('user_id', $user->id)
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+            
+            // Create new credentials
+            $credentials = SpotifyApiCredential::create([
+                'user_id' => $user->id,
+                'client_id' => $validated['client_id'],
+                'client_secret' => $validated['client_secret'],
+                'is_active' => true,
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Spotify API credentials stored successfully',
+                    'data' => $credentials
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Spotify API credentials stored successfully');
+        } catch (\Exception $e) {
+            \Log::error('Failed to store Spotify credentials', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+            
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to store Spotify credentials'
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to store Spotify credentials']);
+        }
+    }
+    
+    /**
+     * Display the Spotify API credentials page
+     */
+    public function credentialsPage()
+    {
+        $user = Auth::user();
+        $credentials = $user->spotifyApiCredential;
+        
+        return view('spotify.credentials', [
+            'credentials' => $credentials,
         ]);
     }
 }

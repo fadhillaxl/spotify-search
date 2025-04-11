@@ -21,6 +21,12 @@
                     <x-nav-link :href="route('overlay')" :active="request()->routeIs('overlay')">
                         {{ __('Song Requests') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('spotify.credentials.index')" :active="request()->routeIs('spotify.credentials.*')">
+                        {{ __('Spotify API') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('documentation')" :active="request()->routeIs('documentation')">
+                        {{ __('Documentation') }}
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -77,6 +83,12 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('overlay')" :active="request()->routeIs('overlay')">
                 {{ __('Song Requests') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('spotify.credentials.index')" :active="request()->routeIs('spotify.credentials.*')">
+                {{ __('Spotify API') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('documentation')" :active="request()->routeIs('documentation')">
+                {{ __('Documentation') }}
             </x-responsive-nav-link>
         </div>
 
